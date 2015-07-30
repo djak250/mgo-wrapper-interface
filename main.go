@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"github.com/djak250/mgo-wrapper-interface/models"
+	"github.com/djak250/mgo-wrapper-interface/mongo"
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
 )
@@ -16,13 +16,12 @@ import (
 
 func main() {
 	session, merr := mgo.Dial("127.0.0.1:27017")
-	defer session.Close()
+	rS := mongo.MgoSession{session}
+	defer rS.Session.Close()
 	if merr != nil {
 		fmt.Println(merr.Error())
 		return
 	}
-	db := session.DB("test")
-	mdb := models.MongoDatabase{db}
 
 	testObj := map[string]interface{}{
 		"_id":   bson.NewObjectId(),
@@ -31,11 +30,13 @@ func main() {
 		"test3": "3",
 	}
 
-	runDbSuite(mdb, testObj)
+	runDbSuite(rS, testObj)
 }
 
-func runDbSuite(rDb models.MgoDatabase, testObj map[string]interface{}) {
-	err := rDb.C("testCol").Insert(testObj)
+func runDbSuite(rs mongo.IMgoSession, testObj map[string]interface{}) {
+	db := rs.DB("test")
+
+	err := db.C("testCol").Insert(testObj)
 	if err != nil {
 		fmt.Println(err.Error())
 		fmt.Println("Inserted:", false)
@@ -48,7 +49,7 @@ func runDbSuite(rDb models.MgoDatabase, testObj map[string]interface{}) {
 	testFindAllArray := make([]map[string]interface{}, 0)
 	testUpdateObj := map[string]interface{}{}
 
-	q := rDb.C("testCol").Find(bson.M{"_id": testObj["_id"]})
+	q := db.C("testCol").Find(bson.M{"_id": testObj["_id"]})
 
 	err = q.One(&testFindOneObj)
 	if err != nil {
@@ -77,25 +78,25 @@ func runDbSuite(rDb models.MgoDatabase, testObj map[string]interface{}) {
 		fmt.Println("FoundAll: ", false)
 	}
 
-	err = rDb.C("testCol").Update(bson.M{"_id": testObj["_id"]}, bson.M{"$set": map[string]interface{}{"updated": true}})
+	err = db.C("testCol").Update(bson.M{"_id": testObj["_id"]}, bson.M{"$set": map[string]interface{}{"updated": true}})
 	if err != nil {
 		fmt.Println(err.Error())
 		fmt.Println("Updated: ", false)
 		return
 	}
-	rDb.C("testCol").Find(bson.M{"_id": testObj["_id"]}).One(&testUpdateObj)
+	db.C("testCol").Find(bson.M{"_id": testObj["_id"]}).One(&testUpdateObj)
 	if _, ok := testUpdateObj["updated"]; ok && testUpdateObj["updated"].(bool) == true {
 		fmt.Println("Updated: ", true)
 	}
 
-	err = rDb.C("testCol").Remove(bson.M{"_id": testObj["_id"]})
+	err = db.C("testCol").Remove(bson.M{"_id": testObj["_id"]})
 	if err != nil {
 		fmt.Println(err.Error())
 		fmt.Println("Removed: ", false)
 		return
 	}
 
-	q = rDb.C("testCol").Find(bson.M{"_id": testObj["_id"]})
+	q = db.C("testCol").Find(bson.M{"_id": testObj["_id"]})
 	err = q.One(nil)
 	if err != nil {
 		if err.Error() == "not found" {

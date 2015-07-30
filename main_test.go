@@ -2,7 +2,7 @@ package main
 
 import (
 	"errors"
-	"github.com/djak250/mgo-wrapper-interface/models"
+	"github.com/djak250/mgo-wrapper-interface/mongo"
 	"gopkg.in/mgo.v2/bson"
 	"testing"
 )
@@ -10,8 +10,9 @@ import (
 // Run with test -v to show the output of right values
 
 func TestRunDbSuite(t *testing.T) {
-	tmdb := models.TMongoDatabase{
-		[]*models.TMongoCollection{},
+	tmdb := mongo.TMgoDatabase{
+		"test",
+		[]*mongo.TMgoCollection{},
 		t,
 	}
 	objId := bson.NewObjectId()
@@ -46,6 +47,9 @@ func TestRunDbSuite(t *testing.T) {
 	tmdb.ExpectFind("testCol", testObj2Bson, testObjBsonSlice2)
 	tmdb.ExpectRemove("testCol", nil)
 	tmdb.ExpectFind("testCol", errors.New("not found"), errors.New("not found"))
-
-	runDbSuite(tmdb, testObj)
+	tms := mongo.TMgoSession{
+		[]*mongo.TMgoDatabase{&tmdb},
+		t,
+	}
+	runDbSuite(tms, testObj)
 }
