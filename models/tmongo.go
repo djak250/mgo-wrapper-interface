@@ -3,6 +3,8 @@ package models
 import (
 	"errors"
 	"fmt"
+	"gopkg.in/mgo.v2/bson"
+	"reflect"
 	"testing"
 )
 
@@ -20,9 +22,17 @@ type TMongoCollection struct {
 	T               *testing.T
 }
 
+/*
+	OneResponse: error / bson.M
+	AllResponse: error / []bson.M
+
+	The usage of bson.M allows us to utilize bson.Unmarshaling log to handle
+	weird pointer/interface reflection for us.
+*/
 type TMongoQuery struct {
 	OneResponse interface{}
 	AllResponse interface{}
+	T           *testing.T
 }
 
 //Implements MgoDatabase
@@ -39,7 +49,7 @@ func (tmd TMongoDatabase) C(colName string) MgoCollection {
 }
 
 func (tmd *TMongoDatabase) ExpectFind(colName string, oneResponse interface{}, allResponse interface{}) {
-	tmq := TMongoQuery{oneResponse, allResponse}
+	tmq := TMongoQuery{oneResponse, allResponse, tmd.T}
 	for _, c := range tmd.Collections {
 		if c.Name == colName {
 			c.FindResponses = append(c.FindResponses, tmq)
@@ -133,7 +143,38 @@ func (tmq TMongoQuery) All(r interface{}) error {
 	if _, ok := tmq.AllResponse.(error); ok {
 		return tmq.AllResponse.(error)
 	}
-	*(r).(*[]map[string]interface{}) = tmq.AllResponse.([]map[string]interface{})
+	rv := reflect.ValueOf(r)
+	slicev := rv.Elem()
+	slicev = slicev.Slice(0, slicev.Cap())
+	elemt := slicev.Type().Elem()
+	i := 0
+	for {
+		if slicev.Len() == i {
+			if i > len(tmq.AllResponse.([]bson.M))-1 {
+				break
+			}
+			elemp := reflect.New(elemt)
+			_bytes, err := bson.Marshal(tmq.AllResponse.([]bson.M)[i])
+			err = bson.Unmarshal(_bytes, elemp.Interface())
+			if err != nil {
+				tmq.T.Fatal("Invalid response type / expectation type")
+			}
+			slicev = reflect.Append(slicev, elemp.Elem())
+			slicev = slicev.Slice(0, slicev.Cap())
+		} else {
+			if i > len(tmq.AllResponse.([]bson.M))-1 {
+				break
+			}
+			_bytes, err := bson.Marshal(tmq.AllResponse.([]bson.M)[i])
+			err = bson.Unmarshal(_bytes, slicev.Index(i).Addr().Interface())
+			if err != nil {
+				tmq.T.Fatal("Invalid response type / expectation type")
+			}
+
+		}
+		i++
+	}
+	rv.Elem().Set(slicev.Slice(0, i))
 	return nil
 }
 
@@ -141,6 +182,10 @@ func (tmq TMongoQuery) One(r interface{}) error {
 	if _, ok := tmq.OneResponse.(error); ok {
 		return tmq.OneResponse.(error)
 	}
-	*(r).(*map[string]interface{}) = tmq.OneResponse.(map[string]interface{})
+	_bytes, err := bson.Marshal(tmq.OneResponse.(bson.M))
+	err = bson.Unmarshal(_bytes, r)
+	if err != nil {
+		tmq.T.Fatal("Invalid response type / expectation type")
+	}
 	return nil
 }

@@ -56,7 +56,6 @@ func runDbSuite(rDb models.MgoDatabase, testObj map[string]interface{}) {
 		fmt.Println("Found: ", false)
 		return
 	}
-
 	if _, ok := testFindOneObj["_id"]; ok && testFindOneObj["_id"].(bson.ObjectId) == testObj["_id"] {
 		fmt.Println("Found: ", true)
 
@@ -71,7 +70,7 @@ func runDbSuite(rDb models.MgoDatabase, testObj map[string]interface{}) {
 		return
 	}
 	if testFindAllArray[0] != nil {
-		if _, ok2 := testFindAllArray[0]["_id"]; ok2 && testFindOneObj["_id"].(bson.ObjectId) == testObj["_id"] {
+		if _, ok2 := testFindAllArray[0]["_id"]; ok2 && testFindAllArray[0]["_id"].(bson.ObjectId) == testObj["_id"] {
 			fmt.Println("FoundAll: ", true)
 		}
 	} else {
@@ -101,11 +100,15 @@ func runDbSuite(rDb models.MgoDatabase, testObj map[string]interface{}) {
 	if err != nil {
 		if err.Error() == "not found" {
 			fmt.Println("Removed: ", true)
-			return
 		} else {
 			fmt.Println(err.Error())
 		}
+	} else {
+		fmt.Println("Removed: ", false)
 	}
-	fmt.Println("Removed: ", false)
+	fmt.Printf("\n\n'testFindOneObj' %+v\n\n", testFindOneObj)
+	fmt.Printf("\n\n'testFindAllArray' %+v\n\n", testFindAllArray)
+	fmt.Printf("\n\n'testUpdateObj' %+v\n\n", testUpdateObj)
+
 	return
 }
