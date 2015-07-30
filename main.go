@@ -46,6 +46,7 @@ func runDbSuite(rs mongo.IMgoSession, testObj map[string]interface{}) {
 	}
 
 	testFindOneObj := map[string]interface{}{}
+	testSelectObj := map[string]interface{}{}
 	testFindAllArray := make([]map[string]interface{}, 0)
 	testUpdateObj := map[string]interface{}{}
 
@@ -62,6 +63,14 @@ func runDbSuite(rs mongo.IMgoSession, testObj map[string]interface{}) {
 
 	} else {
 		fmt.Println("Found: ", false)
+	}
+
+	q.Select(bson.M{"test1": false}).One(&testSelectObj)
+	if _, ok := testSelectObj["test1"]; !ok && testSelectObj["_id"].(bson.ObjectId) == testObj["_id"] {
+		fmt.Println("Selected: ", true)
+
+	} else {
+		fmt.Println("Selected: ", false)
 	}
 
 	err = q.All(&testFindAllArray)
@@ -107,9 +116,10 @@ func runDbSuite(rs mongo.IMgoSession, testObj map[string]interface{}) {
 	} else {
 		fmt.Println("Removed: ", false)
 	}
-	fmt.Printf("\n\n'testFindOneObj' %+v\n\n", testFindOneObj)
-	fmt.Printf("\n\n'testFindAllArray' %+v\n\n", testFindAllArray)
-	fmt.Printf("\n\n'testUpdateObj' %+v\n\n", testUpdateObj)
+	fmt.Printf("\n'testFindOneObj' %+v\n", testFindOneObj)
+	fmt.Printf("\n'testSelectObj' %+v\n", testSelectObj)
+	fmt.Printf("\n'testFindAllArray' %+v\n", testFindAllArray)
+	fmt.Printf("\n'testUpdateObj' %+v\n", testUpdateObj)
 
 	return
 }

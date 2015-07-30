@@ -18,4 +18,5 @@ type IMgoCollection interface {
 type IMgoQuery interface {
 	All(interface{}) error
 	One(interface{}) error
+	Select(interface{}) IMgoQuery
 }

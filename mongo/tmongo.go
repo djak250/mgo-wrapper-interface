@@ -207,3 +207,9 @@ func (tmq TMgoQuery) One(r interface{}) error {
 	}
 	return nil
 }
+
+func (tmq TMgoQuery) Select(s interface{}) IMgoQuery {
+	//TODO:
+	//THIS IS BAD BUT I HAVEN'T DONE ANYTHING TO MOCK UP SELECT YET!!!
+	return tmq
+}

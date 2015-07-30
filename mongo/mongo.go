@@ -53,3 +53,7 @@ func (mq MgoQuery) All(r interface{}) error {
 func (mq MgoQuery) One(r interface{}) error {
 	return mq.Q.One(r)
 }
+
+func (mq MgoQuery) Select(s interface{}) IMgoQuery {
+	return MgoQuery{mq.Q.Select(s)}
+}
